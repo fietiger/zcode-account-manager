@@ -18,7 +18,11 @@ const ROOT = path.join(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
 
 const PLATFORM = { win32: 'win', darwin: 'macos', linux: 'linux' }[process.platform];
-const NODE_TARGET = process.env.PKG_NODE_TARGET || 'node20';
+
+// pkg-fetch only publishes base binaries for node22 / node24 / node26. Asking
+// for node20 makes pkg silently fall back to compiling Node from source, which
+// takes tens of minutes and usually fails on CI — so node22 it is.
+const NODE_TARGET = process.env.PKG_NODE_TARGET || 'node22';
 const ALL_TARGETS = ['win-x64', 'macos-x64', 'macos-arm64', 'linux-x64'];
 
 function outputName(target) {
