@@ -1,0 +1,29 @@
+{
+  "name": "zcode-account-manager",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ZCode 多账号管理器：本地管理 API Key / 套餐 Token，一键切换客户端使用的账号",
+  "license": "MIT",
+  "author": "fietiger",
+  "main": "server/index.js",
+  "bin": {
+    "zcode-account-manager": "server/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node --test test/run.test.js",
+    "build": "node scripts/build.js"
+  },
+  "pkg": {
+    "assets": [
+      "ui/**/*"
+    ],
+    "outputPath": "dist"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.24.0"
+  }
+}

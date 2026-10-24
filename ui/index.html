@@ -1,0 +1,1247 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ZCode 账号管理器</title>
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --panel: #ffffff;
+    --panel-2: #fbfbfd;
+    --border: #e5e7ef;
+    --border-strong: #d5d8e3;
+    --text: #12141c;
+    --muted: #6b7280;
+    --faint: #9aa1b1;
+    --accent: #4f46e5;
+    --accent-2: #7c3aed;
+    --accent-soft: #eef0ff;
+    --accent-line: #c7c9fb;
+    --green: #067647;
+    --green-soft: #ecfdf3;
+    --green-line: #abefc6;
+    --amber: #b54708;
+    --amber-soft: #fffaeb;
+    --amber-line: #fedf89;
+    --red: #b42318;
+    --red-soft: #fef3f2;
+    --red-line: #fecdca;
+    --shadow-sm: 0 1px 2px rgba(16, 24, 40, .05);
+    --shadow-md: 0 4px 14px rgba(16, 24, 40, .07);
+    --shadow-lg: 0 18px 48px rgba(16, 24, 40, .16);
+    --radius: 14px;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+      "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button { font: inherit; cursor: pointer; }
+  input, select, textarea { font: inherit; color: inherit; }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 24px; height: 62px;
+    background: rgba(255, 255, 255, .88);
+    backdrop-filter: saturate(180%) blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+  .brand-mark {
+    width: 32px; height: 32px; border-radius: 9px; flex: none;
+    background: linear-gradient(140deg, var(--accent), var(--accent-2));
+    color: #fff; font-weight: 700; font-size: 16px;
+    display: grid; place-items: center;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, .35);
+  }
+  .brand-text { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .brand-text b { font-size: 14.5px; letter-spacing: -.01em; }
+  .brand-text span { font-size: 11.5px; color: var(--faint); white-space: nowrap; }
+  .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 34px; padding: 0 13px;
+    border-radius: 9px; border: 1px solid var(--border-strong);
+    background: #fff; color: var(--text);
+    font-size: 13px; font-weight: 500;
+    white-space: nowrap;
+    transition: background .15s, border-color .15s, box-shadow .15s, transform .06s;
+  }
+  .btn:hover { background: var(--panel-2); border-color: #c3c7d4; }
+  .btn:active { transform: translateY(.5px); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-primary {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+    box-shadow: 0 1px 2px rgba(79, 70, 229, .3);
+  }
+  .btn-primary:hover { background: #4338ca; border-color: #4338ca; }
+  .btn-ghost { border-color: transparent; background: transparent; color: var(--muted); }
+  .btn-ghost:hover { background: #eef0f5; color: var(--text); }
+  .btn-danger { color: var(--red); border-color: var(--red-line); background: var(--red-soft); }
+  .btn-danger:hover { background: #fee4e2; border-color: #fda29b; }
+  .btn-sm { height: 28px; padding: 0 10px; font-size: 12.5px; border-radius: 8px; }
+  .btn svg { width: 15px; height: 15px; flex: none; }
+
+  /* ---------- layout ---------- */
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 20px 24px 56px; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+  .stat {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 13px 15px; box-shadow: var(--shadow-sm);
+  }
+  .stat-label { font-size: 11.5px; color: var(--muted); letter-spacing: .02em; }
+  .stat-value { margin-top: 4px; font-size: 17px; font-weight: 650; letter-spacing: -.015em; display: flex; align-items: center; gap: 7px; }
+  .stat-value small { font-size: 12px; font-weight: 500; color: var(--faint); }
+
+  .columns { display: grid; grid-template-columns: minmax(0, 1fr) 344px; gap: 18px; align-items: start; }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+  }
+  .panel-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+  }
+  .panel-head h2 { margin: 0; font-size: 13px; font-weight: 650; letter-spacing: -.005em; }
+  .panel-head .count { font-size: 11.5px; color: var(--faint); }
+  .panel-body { padding: 12px; }
+  .panel-body.tight { padding: 8px; }
+
+  /* ---------- banner ---------- */
+  .banner {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 11px 14px; border-radius: 11px; margin-bottom: 12px;
+    font-size: 12.5px; line-height: 1.45;
+    border: 1px solid var(--amber-line); background: var(--amber-soft); color: #93370d;
+  }
+  .banner svg { width: 15px; height: 15px; flex: none; margin-top: 1px; }
+  .banner.info { border-color: var(--accent-line); background: var(--accent-soft); color: #3730a3; }
+  .banner.danger { border-color: var(--red-line); background: var(--red-soft); color: #912018; }
+  .banner b { font-weight: 650; }
+
+  /* ---------- account cards ---------- */
+  .accounts { display: flex; flex-direction: column; gap: 10px; }
+
+  .card {
+    position: relative; overflow: hidden;
+    border: 1px solid var(--border); border-radius: 13px;
+    background: var(--panel); padding: 14px 16px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-md); }
+  .card.active { border-color: var(--accent-line); background: linear-gradient(180deg, #fbfbff, #fff 60%); }
+  .card.active::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: linear-gradient(180deg, var(--accent), var(--accent-2));
+  }
+
+  .card-top { display: flex; align-items: flex-start; gap: 11px; }
+  .avatar {
+    width: 36px; height: 36px; border-radius: 10px; flex: none;
+    display: grid; place-items: center;
+    font-weight: 650; font-size: 14px; color: #3730a3;
+    background: var(--accent-soft); border: 1px solid var(--accent-line);
+  }
+  .card.active .avatar { background: linear-gradient(140deg, var(--accent), var(--accent-2)); color: #fff; border-color: transparent; }
+  .card-id { min-width: 0; flex: 1; }
+  .card-title { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .card-title strong { font-size: 14px; font-weight: 650; letter-spacing: -.01em; }
+  .card-sub { font-size: 12px; color: var(--muted); margin-top: 1px; word-break: break-all; }
+
+  .card-actions { display: flex; align-items: center; gap: 6px; flex: none; }
+
+  .badges { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 9px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    height: 20px; padding: 0 7px; border-radius: 6px;
+    font-size: 11px; font-weight: 550; letter-spacing: .01em;
+    border: 1px solid var(--border); background: var(--panel-2); color: var(--muted);
+  }
+  .badge.valid { color: var(--green); background: var(--green-soft); border-color: var(--green-line); }
+  .badge.expiring { color: var(--amber); background: var(--amber-soft); border-color: var(--amber-line); }
+  .badge.expired { color: var(--red); background: var(--red-soft); border-color: var(--red-line); }
+  .badge.active-badge { color: #fff; background: var(--accent); border-color: var(--accent); }
+  .badge.tag { color: #475467; background: #f2f4f7; border-color: #e4e7ec; }
+  .badge.plan { color: #3730a3; background: var(--accent-soft); border-color: var(--accent-line); }
+  .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+  .keyrow {
+    display: flex; align-items: center; gap: 8px; margin-top: 10px;
+    padding: 7px 9px; border-radius: 8px;
+    background: #f7f8fb; border: 1px solid #eceef4;
+  }
+  .keyrow code {
+    font-family: var(--mono); font-size: 12px; color: #344054;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
+  }
+  .icon-btn {
+    display: grid; place-items: center; width: 24px; height: 24px; flex: none;
+    border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--faint);
+  }
+  .icon-btn:hover { background: #fff; border-color: var(--border); color: var(--text); }
+  .icon-btn svg { width: 14px; height: 14px; }
+
+  .card-foot {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    margin-top: 10px; font-size: 11.5px; color: var(--faint);
+  }
+  .card-foot .sep { width: 1px; height: 10px; background: var(--border); }
+
+  /* ---------- provider slots ---------- */
+  .slot {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 10px; border-radius: 9px;
+  }
+  .slot + .slot { margin-top: 2px; }
+  .slot:hover { background: var(--panel-2); }
+  .slot-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: #d0d5dd; }
+  .slot.on .slot-dot { background: var(--green); box-shadow: 0 0 0 3px rgba(6, 118, 71, .12); }
+  .slot-main { min-width: 0; flex: 1; }
+  .slot-name { font-size: 12.5px; font-weight: 550; display: flex; align-items: center; gap: 6px; }
+  .slot-meta { font-size: 11px; color: var(--faint); font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .slot-state { font-size: 11px; color: var(--faint); flex: none; }
+  .slot.on .slot-state { color: var(--green); font-weight: 550; }
+
+  /* ---------- empty / skeleton ---------- */
+  .empty { text-align: center; padding: 46px 24px; }
+  .empty-mark {
+    width: 46px; height: 46px; margin: 0 auto 12px; border-radius: 13px;
+    display: grid; place-items: center; background: var(--accent-soft); color: var(--accent);
+  }
+  .empty h3 { margin: 0 0 5px; font-size: 14px; font-weight: 650; }
+  .empty p { margin: 0 auto 16px; max-width: 380px; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+  .empty .row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+  .skeleton { padding: 14px 16px; }
+  .sk-line { height: 11px; border-radius: 6px; background: linear-gradient(90deg, #eef0f5 25%, #f6f7fa 50%, #eef0f5 75%); background-size: 200% 100%; animation: shimmer 1.3s infinite; }
+  @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+  /* ---------- overlays ---------- */
+  .overlay {
+    position: fixed; inset: 0; z-index: 60;
+    display: grid; place-items: center; padding: 24px;
+    background: rgba(16, 24, 40, .38);
+    backdrop-filter: blur(2px);
+    animation: fade .16s ease-out;
+  }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    width: min(560px, 100%); max-height: calc(100vh - 64px);
+    display: flex; flex-direction: column;
+    background: var(--panel); border-radius: 16px;
+    box-shadow: var(--shadow-lg); border: 1px solid var(--border);
+    animation: rise .18s cubic-bezier(.2, .8, .3, 1);
+  }
+  .modal.wide { width: min(760px, 100%); }
+  @keyframes rise { from { transform: translateY(8px) scale(.99); opacity: .6; } to { transform: none; opacity: 1; } }
+  .modal-head { display: flex; align-items: flex-start; gap: 12px; padding: 18px 20px 12px; }
+  .modal-head h3 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
+  .modal-head p { margin: 3px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+  .modal-head .close { margin-left: auto; }
+  .modal-body { padding: 4px 20px 8px; overflow: auto; }
+  .modal-foot { display: flex; align-items: center; gap: 8px; padding: 14px 20px 18px; }
+  .modal-foot .right { margin-left: auto; display: flex; gap: 8px; }
+
+  .field { margin-bottom: 13px; }
+  .field label { display: block; font-size: 12px; font-weight: 550; color: #344054; margin-bottom: 5px; }
+  .field label .opt { font-weight: 400; color: var(--faint); }
+  .input, .select, .textarea {
+    width: 100%; border: 1px solid var(--border-strong); border-radius: 9px;
+    padding: 8px 11px; background: #fff; font-size: 13px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .input:focus, .select:focus, .textarea:focus {
+    outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79, 70, 229, .12);
+  }
+  .input.mono, .textarea.mono { font-family: var(--mono); font-size: 12.5px; }
+  .textarea { resize: vertical; min-height: 84px; line-height: 1.55; }
+  .hint { font-size: 11.5px; color: var(--faint); margin-top: 5px; line-height: 1.5; }
+  .hint.ok { color: var(--green); }
+  .hint.warn { color: var(--amber); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .advanced-toggle {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: none; border: 0; padding: 0; color: var(--muted); font-size: 12px; margin-bottom: 10px;
+  }
+  .advanced-toggle:hover { color: var(--text); }
+
+  .kv { display: grid; grid-template-columns: 112px 1fr; gap: 8px 14px; font-size: 12.5px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; word-break: break-all; }
+  .kv dd code { font-family: var(--mono); font-size: 12px; }
+
+  .logs { font-family: var(--mono); font-size: 11.5px; line-height: 1.65; color: #344054; max-height: 380px; overflow: auto; }
+  .logs div { padding: 2px 0; border-bottom: 1px solid #f2f4f7; }
+  .logs .lv-error { color: var(--red); }
+  .logs .lv-warn { color: var(--amber); }
+
+  .summary { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
+  .summary .badge { height: 22px; }
+
+  /* ---------- toasts ---------- */
+  .toasts { position: fixed; right: 20px; bottom: 20px; z-index: 80; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+  .toast {
+    display: flex; align-items: flex-start; gap: 9px;
+    min-width: 240px; max-width: 380px; padding: 11px 13px;
+    background: #101828; color: #fff; border-radius: 10px;
+    font-size: 12.5px; line-height: 1.45; box-shadow: var(--shadow-lg);
+    animation: toastIn .2s ease-out;
+  }
+  .toast.err { background: #912018; }
+  .toast.ok { background: #054f31; }
+  .toast svg { width: 15px; height: 15px; flex: none; margin-top: 1px; }
+  @keyframes toastIn { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  .mono { font-family: var(--mono); }
+  .muted { color: var(--muted); }
+  .faint { color: var(--faint); }
+  .nowrap { white-space: nowrap; }
+
+  @media (max-width: 1020px) {
+    .columns { grid-template-columns: minmax(0, 1fr); }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .wrap { padding: 14px 14px 40px; }
+    .topbar { padding: 0 14px; height: auto; flex-wrap: wrap; padding-block: 10px; }
+    .topbar-actions { width: 100%; }
+    .grid-2 { grid-template-columns: 1fr; }
+    .kv { grid-template-columns: 1fr; gap: 2px 0; }
+    .kv dd { margin-bottom: 8px; }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">Z</div>
+    <div class="brand-text">
+      <b>ZCode 账号管理器</b>
+      <span>本地凭证管理 · 无代理 · 不上传</span>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn" data-action="import-local" id="btnImportLocal">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0 4-4m-4 4-4-4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke-linecap="round"/></svg>
+      导入本机账号
+    </button>
+    <button class="btn" data-action="batch-import">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/></svg>
+      批量导入
+    </button>
+    <button class="btn" data-action="export">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21V9m0 0 4 4m-4-4-4 4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 7V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2" stroke-linecap="round"/></svg>
+      导出备份
+    </button>
+    <button class="btn btn-primary" data-action="add-account">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+      添加账号
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="stats" id="stats"></section>
+  <div class="columns">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>账号</h2>
+        <span class="count" id="accountCount"></span>
+        <div style="margin-left:auto;display:flex;gap:6px">
+          <button class="btn btn-sm btn-ghost" data-action="refresh" title="刷新">刷新</button>
+        </div>
+      </div>
+      <div class="panel-body" id="accountList"></div>
+    </section>
+
+    <aside style="display:flex;flex-direction:column;gap:14px">
+      <section class="panel">
+        <div class="panel-head"><h2>客户端 Provider 槽位</h2></div>
+        <div class="panel-body tight" id="providerList"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>本地数据</h2></div>
+        <div class="panel-body" style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-sm" data-action="open-dir" data-which="data">打开数据目录</button>
+          <button class="btn btn-sm" data-action="open-dir" data-which="backups">打开配置备份</button>
+          <button class="btn btn-sm" data-action="show-logs">查看日志</button>
+          <p class="hint" style="margin-top:2px">账号凭证以明文 JSON 保存在本机，导出的备份包含完整 Key，请勿分享。</p>
+        </div>
+      </section>
+    </aside>
+  </div>
+</main>
+
+<div class="toasts" id="toasts"></div>
+<div id="overlayRoot"></div>
+
+<script>
+'use strict';
+
+/* ================================================================== *
+ * State + helpers
+ * ================================================================== */
+
+const state = {
+  status: null,
+  accounts: [],
+  providers: [],
+  presets: [],
+  loading: true,
+  overlay: null,
+};
+
+const $ = (sel) => document.querySelector(sel);
+
+function esc(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[ch]));
+}
+
+function timeAgo(iso) {
+  if (!iso) return '从未使用';
+  const diff = Date.now() - new Date(iso).getTime();
+  if (diff < 60e3) return '刚刚';
+  if (diff < 3600e3) return Math.floor(diff / 60e3) + ' 分钟前';
+  if (diff < 86400e3) return Math.floor(diff / 3600e3) + ' 小时前';
+  if (diff < 30 * 86400e3) return Math.floor(diff / 86400e3) + ' 天前';
+  return new Date(iso).toLocaleDateString('zh-CN');
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('zh-CN', { hour12: false });
+}
+
+async function request(path, options = {}) {
+  const init = { method: options.method || 'GET', headers: {} };
+  if (options.body !== undefined) {
+    init.headers['content-type'] = 'application/json';
+    init.body = JSON.stringify(options.body);
+  }
+  const res = await fetch(path, init);
+  const text = await res.text();
+  let data = {};
+  try { data = text ? JSON.parse(text) : {}; } catch { data = { message: text }; }
+  if (!res.ok) {
+    const err = new Error(data.message || ('请求失败（' + res.status + '）'));
+    err.data = data;
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
+
+const api = {
+  status: () => request('/api/status'),
+  accounts: () => request('/api/accounts'),
+  providers: () => request('/api/providers'),
+  create: (body) => request('/api/accounts', { method: 'POST', body }),
+  update: (id, body) => request('/api/accounts/' + id, { method: 'PATCH', body }),
+  remove: (id) => request('/api/accounts/' + id, { method: 'DELETE' }),
+  reveal: (id) => request('/api/accounts/' + id + '/reveal'),
+  activate: (id, force) => request('/api/accounts/' + id + '/activate', { method: 'POST', body: { force: Boolean(force) } }),
+  probe: (id) => request('/api/accounts/' + id + '/probe', { method: 'POST', body: {} }),
+  importLocal: () => request('/api/import/local', { method: 'POST', body: {} }),
+  importBatch: (entries) => request('/api/import/batch', { method: 'POST', body: { entries } }),
+  detect: (body) => request('/api/detect', { method: 'POST', body }),
+  openDir: (which) => request('/api/open-data-dir', { method: 'POST', body: { which } }),
+  logs: () => request('/api/logs'),
+};
+
+/* ================================================================== *
+ * Toasts
+ * ================================================================== */
+
+const ICONS = {
+  ok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m5 13 4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  err: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5m0 3h.01" stroke-linecap="round"/></svg>',
+  info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01" stroke-linecap="round"/></svg>',
+};
+
+function toast(message, kind = 'info', detail) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + (kind === 'ok' ? 'ok' : kind === 'err' ? 'err' : '');
+  el.innerHTML = (ICONS[kind] || ICONS.info) +
+    '<div><div>' + esc(message) + '</div>' +
+    (detail ? '<div style="opacity:.72;margin-top:2px;font-size:11.5px">' + esc(detail) + '</div>' : '') +
+    '</div>';
+  $('#toasts').appendChild(el);
+  setTimeout(() => {
+    el.style.transition = 'opacity .25s, transform .25s';
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(4px)';
+    setTimeout(() => el.remove(), 260);
+  }, kind === 'err' ? 5200 : 3200);
+}
+
+/* ================================================================== *
+ * Overlay plumbing
+ * ================================================================== */
+
+function openOverlay(html, options = {}) {
+  closeOverlay();
+  const root = $('#overlayRoot');
+  const layer = document.createElement('div');
+  layer.className = 'overlay';
+  layer.innerHTML = html;
+  layer.addEventListener('mousedown', (e) => {
+    if (e.target === layer && options.dismissible !== false) closeOverlay();
+  });
+  root.appendChild(layer);
+  state.overlay = layer;
+
+  const focusable = layer.querySelector('[data-autofocus]');
+  if (focusable) setTimeout(() => focusable.focus(), 40);
+  return layer;
+}
+
+function closeOverlay() {
+  if (state.overlay) {
+    state.overlay.remove();
+    state.overlay = null;
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && state.overlay) closeOverlay();
+});
+
+function confirmDialog({ title, message, confirmLabel = '确认', danger = false }) {
+  return new Promise((resolve) => {
+    const layer = openOverlay(
+      '<div class="modal" role="dialog" style="width:min(440px,100%)">' +
+        '<div class="modal-head"><div><h3>' + esc(title) + '</h3><p>' + message + '</p></div></div>' +
+        '<div class="modal-foot"><div class="right">' +
+          '<button class="btn" data-close>取消</button>' +
+          '<button class="btn ' + (danger ? 'btn-danger' : 'btn-primary') + '" data-confirm data-autofocus>' + esc(confirmLabel) + '</button>' +
+        '</div></div>' +
+      '</div>'
+    );
+    const finish = (value) => { closeOverlay(); resolve(value); };
+    layer.querySelector('[data-close]').onclick = () => finish(false);
+    layer.querySelector('[data-confirm]').onclick = () => finish(true);
+  });
+}
+
+/* ================================================================== *
+ * Rendering
+ * ================================================================== */
+
+function providerBadge(account) {
+  const region = account.region ? ' · ' + account.region : '';
+  return '<span class="badge plan">' + esc(account.providerName) + esc(region) + '</span>';
+}
+
+function tokenBadge(token) {
+  const cls = token.state === 'valid' ? 'valid'
+    : token.state === 'expiring' ? 'expiring'
+    : token.state === 'expired' ? 'expired' : '';
+  const label = token.state === 'expiring' ? '待刷新'
+    : token.state === 'expired' ? '已过期'
+    : token.state === 'valid' ? '有效' : '长期有效';
+  return '<span class="badge ' + cls + '"><span class="dot"></span>' + label + '</span>';
+}
+
+function renderStats() {
+  const s = state.status;
+  if (!s) { $('#stats').innerHTML = ''; return; }
+  const clientText = !s.client.installed ? '未安装' : s.client.running ? '运行中' : '未运行';
+  const clientColor = !s.client.installed ? 'var(--red)' : s.client.running ? 'var(--amber)' : 'var(--green)';
+  const activeText = s.active ? (s.active.accountLabel || s.active.providerName) : '未设置';
+  const activeSub = s.active ? s.active.providerName : '暂无启用的 provider';
+
+  $('#stats').innerHTML = [
+    '<div class="stat"><div class="stat-label">账号总数</div><div class="stat-value">' + s.counts.accounts + '</div></div>',
+    '<div class="stat"><div class="stat-label">当前活跃</div><div class="stat-value" style="font-size:13.5px">' +
+      '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(activeText) + '</span></div>' +
+      '<div class="stat-label" style="margin-top:2px;color:var(--faint)">' + esc(activeSub) + '</div></div>',
+    '<div class="stat"><div class="stat-label">ZCode 客户端</div><div class="stat-value" style="color:' + clientColor + '">' +
+      '<span class="dot" style="width:7px;height:7px"></span>' + clientText + '</div>' +
+      '<div class="stat-label" style="margin-top:2px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+      esc(s.client.path) + '</div></div>',
+    '<div class="stat"><div class="stat-label">需关注</div><div class="stat-value">' + s.counts.expiring +
+      ' <small>个即将过期 / 已过期</small></div></div>',
+  ].join('');
+}
+
+function renderAccounts() {
+  const host = $('#accountList');
+  $('#accountCount').textContent = state.accounts.length ? state.accounts.length + ' 个' : '';
+
+  if (state.loading) {
+    host.innerHTML = '<div class="skeleton"><div class="sk-line" style="width:42%"></div>' +
+      '<div class="sk-line" style="width:66%;margin-top:10px"></div>' +
+      '<div class="sk-line" style="width:100%;margin-top:12px;height:30px"></div></div>' +
+      '<div class="skeleton"><div class="sk-line" style="width:36%"></div>' +
+      '<div class="sk-line" style="width:58%;margin-top:10px"></div></div>';
+    return;
+  }
+
+  if (!state.accounts.length) {
+    host.innerHTML =
+      '<div class="empty">' +
+        '<div class="empty-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" width="22" height="22">' +
+          '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 10h8M8 14h5" stroke-linecap="round"/></svg></div>' +
+        '<h3>还没有账号</h3>' +
+        '<p>可以一键把 ZCode 当前登录的账号收进来，也可以直接粘贴 API Key / 套餐 Token 添加。</p>' +
+        '<div class="row">' +
+          '<button class="btn" data-action="import-local">导入本机账号</button>' +
+          '<button class="btn btn-primary" data-action="add-account">添加账号</button>' +
+        '</div>' +
+      '</div>';
+    return;
+  }
+
+  const activeFp = state.status && state.status.active ? state.status.active.keyFingerprint : null;
+
+  host.innerHTML = '<div class="accounts">' + state.accounts.map((a) => {
+    const isActive = activeFp && a.keyFingerprint === activeFp;
+    const initial = (a.label || a.email || '?').trim().charAt(0).toUpperCase();
+    return (
+      '<article class="card' + (isActive ? ' active' : '') + '" data-id="' + esc(a.id) + '">' +
+        '<div class="card-top">' +
+          '<div class="avatar">' + esc(initial) + '</div>' +
+          '<div class="card-id">' +
+            '<div class="card-title">' +
+              '<strong>' + esc(a.label || a.email || a.id) + '</strong>' +
+              (isActive ? '<span class="badge active-badge">使用中</span>' : '') +
+            '</div>' +
+            '<div class="card-sub">' + esc(a.email || a.userId || '未设置账号标识') + '</div>' +
+          '</div>' +
+          '<div class="card-actions">' +
+            (isActive ? '' : '<button class="btn btn-sm btn-primary" data-action="activate" data-id="' + esc(a.id) + '">切换</button>') +
+            '<button class="icon-btn" data-action="details" data-id="' + esc(a.id) + '" title="详情">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01" stroke-linecap="round"/></svg></button>' +
+            '<button class="icon-btn" data-action="edit" data-id="' + esc(a.id) + '" title="编辑">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 20h4l10-10a2.8 2.8 0 0 0-4-4L4 16v4Z" stroke-linejoin="round"/></svg></button>' +
+            '<button class="icon-btn" data-action="delete" data-id="' + esc(a.id) + '" title="删除">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M5 7h14M10 7V5h4v2M6 7l1 13h10l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="badges">' + providerBadge(a) + tokenBadge(a.token) +
+          a.tags.map((t) => '<span class="badge tag">' + esc(t) + '</span>').join('') +
+        '</div>' +
+        '<div class="keyrow">' +
+          '<code data-key-display="' + esc(a.id) + '">' + esc(a.apiKeyMasked) + '</code>' +
+          '<button class="icon-btn" data-action="reveal" data-id="' + esc(a.id) + '" title="显示完整 Key">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.6"/></svg></button>' +
+          '<button class="icon-btn" data-action="copy" data-id="' + esc(a.id) + '" title="复制 Key">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 6V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h1"/></svg></button>' +
+        '</div>' +
+        '<div class="card-foot">' +
+          '<span class="mono">' + esc(a.keyFingerprint) + '</span>' +
+          '<span class="sep"></span>' +
+          '<span>最近使用 ' + esc(timeAgo(a.lastUsedAt)) + '</span>' +
+          (a.useCount ? '<span class="sep"></span><span>切换 ' + a.useCount + ' 次</span>' : '') +
+          (a.baseURL ? '<span class="sep"></span><span class="mono" style="overflow:hidden;text-overflow:ellipsis;max-width:220px">' + esc(a.baseURL.replace(/^https?:\/\//, '')) + '</span>' : '') +
+        '</div>' +
+      '</article>'
+    );
+  }).join('') + '</div>';
+}
+
+function renderProviders() {
+  const host = $('#providerList');
+  if (!state.providers.length) {
+    host.innerHTML = '<p class="hint" style="padding:8px 10px">未检测到 ZCode 配置文件。</p>';
+    return;
+  }
+  host.innerHTML = state.providers.map((p) => {
+    const stateText = p.enabled && p.hasKey ? '使用中'
+      : p.hasKey ? '已配置'
+      : p.planStatus && p.planStatus.status === 'unavailable' ? '不可用'
+      : '空';
+    return (
+      '<div class="slot' + (p.enabled && p.hasKey ? ' on' : '') + '" title="' + esc(p.id) + '">' +
+        '<span class="slot-dot"></span>' +
+        '<div class="slot-main">' +
+          '<div class="slot-name">' + esc(p.name) + '</div>' +
+          '<div class="slot-meta">' + esc(p.hasKey ? p.apiKeyMasked : p.baseURL.replace(/^https?:\/\//, '')) + '</div>' +
+        '</div>' +
+        '<span class="slot-state">' + stateText + '</span>' +
+      '</div>'
+    );
+  }).join('');
+}
+
+function renderRunningBanner() {
+  const s = state.status;
+  if (!s || !s.client.running) return '';
+  return '<div class="banner">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 3h.01" stroke-linecap="round"/><path d="M10.3 4.3 2.6 17.7A2 2 0 0 0 4.3 20.7h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0Z" stroke-linejoin="round"/></svg>' +
+    '<div><b>ZCode 正在运行。</b>切换账号前请完全退出客户端，否则它退出时会把内存里的旧配置写回磁盘，覆盖这次切换。</div>' +
+    '</div>';
+}
+
+/* ================================================================== *
+ * Data loading
+ * ================================================================== */
+
+async function refresh(showSpinner = false) {
+  if (showSpinner) {
+    state.loading = true;
+    renderAccounts();
+  }
+  try {
+    const [status, accounts, providers] = await Promise.all([
+      api.status(), api.accounts(), api.providers(),
+    ]);
+    state.status = status;
+    state.accounts = accounts.accounts || [];
+    state.providers = providers.providers || [];
+    state.presets = providers.presets || [];
+    state.loading = false;
+    renderStats();
+    renderAccounts();
+    renderProviders();
+    renderBanner();
+  } catch (err) {
+    state.loading = false;
+    renderAccounts();
+    toast('加载失败', 'err', err.message);
+  }
+}
+
+function renderBanner() {
+  const host = $('#accountList');
+  const banner = renderRunningBanner();
+  const existing = host.querySelector('.banner');
+  if (existing) existing.remove();
+  if (banner) host.insertAdjacentHTML('afterbegin', banner);
+}
+
+/* ================================================================== *
+ * Actions
+ * ================================================================== */
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch { ok = false; }
+    ta.remove();
+    return ok;
+  }
+}
+
+async function doCopy(id) {
+  try {
+    const { apiKey } = await api.reveal(id);
+    const ok = await copyText(apiKey);
+    toast(ok ? '已复制到剪贴板' : '复制失败，请手动选择', ok ? 'ok' : 'err');
+  } catch (err) {
+    toast('读取失败', 'err', err.message);
+  }
+}
+
+async function doReveal(id) {
+  const el = document.querySelector('[data-key-display="' + id + '"]');
+  if (!el) return;
+  if (el.dataset.revealed === '1') {
+    el.textContent = el.dataset.masked || '';
+    el.dataset.revealed = '0';
+    return;
+  }
+  try {
+    const { apiKey } = await api.reveal(id);
+    el.dataset.masked = el.textContent;
+    el.textContent = apiKey;
+    el.dataset.revealed = '1';
+    clearTimeout(el._timer);
+    el._timer = setTimeout(() => {
+      if (el.dataset.revealed === '1') {
+        el.textContent = el.dataset.masked || '';
+        el.dataset.revealed = '0';
+      }
+    }, 20000);
+  } catch (err) {
+    toast('读取失败', 'err', err.message);
+  }
+}
+
+async function doActivate(id, force) {
+  try {
+    await api.activate(id, force);
+    const account = state.accounts.find((a) => a.id === id);
+    toast('已切换', 'ok', account ? (account.label || account.email) : undefined);
+    await refresh();
+  } catch (err) {
+    if (err.data && err.data.error === 'client_running') {
+      const go = await confirmDialog({
+        title: 'ZCode 正在运行',
+        message: esc(err.message) + '<br><br>仍然写入吗？如果客户端随后覆盖了配置，回读校验会报错。',
+        confirmLabel: '仍然切换',
+      });
+      if (go) return doActivate(id, true);
+      return;
+    }
+    toast('切换失败', 'err', err.message);
+  }
+}
+
+async function doDelete(id) {
+  const account = state.accounts.find((a) => a.id === id);
+  const ok = await confirmDialog({
+    title: '删除账号',
+    message: '将删除 <b>' + esc((account && (account.label || account.email)) || id) + '</b> 的本地记录，不影响 ZCode 客户端当前配置。此操作不可撤销。',
+    confirmLabel: '删除',
+    danger: true,
+  });
+  if (!ok) return;
+  try {
+    await api.remove(id);
+    toast('已删除', 'ok');
+    await refresh();
+  } catch (err) {
+    toast('删除失败', 'err', err.message);
+  }
+}
+
+/* ================================================================== *
+ * Add / edit overlay
+ * ================================================================== */
+
+function providerOptions(selected) {
+  return state.presets.map((p) =>
+    '<option value="' + esc(p.id) + '"' + (p.id === selected ? ' selected' : '') + '>' +
+    esc(p.name) + '（' + esc(p.region) + '）</option>'
+  ).join('');
+}
+
+function accountFormOverlay(account) {
+  const editing = Boolean(account);
+  const layer = openOverlay(
+    '<div class="modal" role="dialog">' +
+      '<div class="modal-head"><div>' +
+        '<h3>' + (editing ? '编辑账号' : '添加账号') + '</h3>' +
+        '<p>' + (editing
+          ? '修改标签或替换 Key。留空 Key 表示保持不变。'
+          : '粘贴 ZCode 使用的 API Key 或套餐 Token，选择它对应的套餐槽位。') + '</p>' +
+      '</div>' +
+      '<button class="icon-btn close" data-close title="关闭">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/></svg>' +
+      '</button></div>' +
+      '<div class="modal-body">' +
+        '<div class="field">' +
+          '<label>API Key / 套餐 Token' + (editing ? ' <span class="opt">（留空不修改）</span>' : '') + '</label>' +
+          '<textarea class="textarea mono" id="fKey" data-autofocus placeholder="' + (editing ? '留空表示保留现有 Key' : '例如 eyJhbGciOi... 或 0123456789abcdef0123456789abcdef.xxxx') + '"></textarea>' +
+          '<div class="hint" id="fKeyHint"></div>' +
+        '</div>' +
+        '<div class="field">' +
+          '<label>套餐 / Provider 槽位</label>' +
+          '<select class="select" id="fProvider">' + providerOptions(account ? account.providerId : '') + '</select>' +
+          '<div class="hint">切换时会把 Key 写入这个槽位并只保留它启用。</div>' +
+        '</div>' +
+        '<div class="grid-2">' +
+          '<div class="field"><label>备注名</label>' +
+            '<input class="input" id="fLabel" value="' + esc(account ? account.label : '') + '" placeholder="主账号 / 备用" /></div>' +
+          '<div class="field"><label>账号标识 <span class="opt">（邮箱等）</span></label>' +
+            '<input class="input" id="fEmail" value="' + esc(account ? account.email : '') + '" placeholder="可选" /></div>' +
+        '</div>' +
+        '<div class="field"><label>标签 <span class="opt">（逗号分隔）</span></label>' +
+          '<input class="input" id="fTags" value="' + esc(account ? (account.tags || []).join(', ') : '') + '" placeholder="例如：主力, 团队" /></div>' +
+        '<button class="advanced-toggle" data-toggle-advanced type="button">高级选项 ▾</button>' +
+        '<div id="fAdvanced" style="display:none">' +
+          '<div class="field"><label>Base URL</label>' +
+            '<input class="input mono" id="fBaseUrl" value="' + esc(account ? account.baseURL : '') + '" placeholder="留空则使用套餐默认地址" /></div>' +
+          '<div class="field"><label>备注</label>' +
+            '<textarea class="textarea" id="fNotes" placeholder="可选">' + esc(account ? account.notes : '') + '</textarea></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="modal-foot"><div class="right">' +
+        '<button class="btn" data-close>取消</button>' +
+        '<button class="btn btn-primary" data-save>' + (editing ? '保存' : '添加') + '</button>' +
+      '</div></div>' +
+    '</div>'
+  );
+
+  const keyInput = layer.querySelector('#fKey');
+  const providerSelect = layer.querySelector('#fProvider');
+  const hint = layer.querySelector('#fKeyHint');
+  let detected = null;
+
+  async function detect() {
+    const apiKey = keyInput.value.trim();
+    if (!apiKey) {
+      hint.textContent = '';
+      hint.className = 'hint';
+      detected = null;
+      return;
+    }
+    try {
+      const res = await api.detect({ apiKey });
+      detected = res.providerId;
+      const preset = state.presets.find((p) => p.id === res.providerId);
+      if (preset && !editing) providerSelect.value = res.providerId;
+      const kindText = res.keyKind === 'jwt' ? '套餐 Token（JWT）'
+        : res.keyKind === 'id-secret' ? 'BigModel API Key'
+        : 'API Key';
+      hint.className = 'hint ok';
+      hint.textContent = '识别为 ' + kindText + (preset ? '，建议槽位：' + preset.name : '') +
+        (res.identity && res.identity.userId ? '，用户 ID ' + res.identity.userId : '');
+    } catch {
+      hint.textContent = '';
+      hint.className = 'hint';
+    }
+  }
+
+  keyInput.addEventListener('input', () => { clearTimeout(keyInput._t); keyInput._t = setTimeout(detect, 260); });
+
+  layer.querySelector('[data-toggle-advanced]').onclick = (e) => {
+    const box = layer.querySelector('#fAdvanced');
+    const open = box.style.display === 'none';
+    box.style.display = open ? 'block' : 'none';
+    e.currentTarget.textContent = open ? '高级选项 ▴' : '高级选项 ▾';
+  };
+
+  layer.querySelectorAll('[data-close]').forEach((btn) => { btn.onclick = closeOverlay; });
+
+  layer.querySelector('[data-save]').onclick = async () => {
+    const btn = layer.querySelector('[data-save]');
+    const payload = {
+      apiKey: keyInput.value.trim() || undefined,
+      providerId: providerSelect.value,
+      label: layer.querySelector('#fLabel').value.trim() || undefined,
+      email: layer.querySelector('#fEmail').value.trim() || undefined,
+      tags: layer.querySelector('#fTags').value.trim() || undefined,
+      baseURL: layer.querySelector('#fBaseUrl').value.trim() || undefined,
+      notes: layer.querySelector('#fNotes').value,
+    };
+    if (!editing && !payload.apiKey) {
+      hint.className = 'hint warn';
+      hint.textContent = '请先粘贴 API Key。';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = editing ? '保存中…' : '添加中…';
+    try {
+      if (editing) await api.update(account.id, payload);
+      else await api.create(payload);
+      closeOverlay();
+      toast(editing ? '已保存' : '已添加', 'ok');
+      await refresh();
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = editing ? '保存' : '添加';
+      if (err.data && err.data.error === 'duplicate') {
+        hint.className = 'hint warn';
+        hint.textContent = err.message;
+        return;
+      }
+      toast(editing ? '保存失败' : '添加失败', 'err', err.message);
+    }
+  };
+}
+
+/* ================================================================== *
+ * Batch import overlay
+ * ================================================================== */
+
+function batchImportOverlay() {
+  const layer = openOverlay(
+    '<div class="modal wide" role="dialog">' +
+      '<div class="modal-head"><div>' +
+        '<h3>批量导入</h3>' +
+        '<p>粘贴 JSON 数组，或选择 .json 文件。支持 <code class="mono">[{ "email": "...", "apiKey": "..." }]</code>、' +
+        '也兼容本应用的导出格式与只含 Key 的字符串数组。</p>' +
+      '</div>' +
+      '<button class="icon-btn close" data-close title="关闭">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/></svg></button></div>' +
+      '<div class="modal-body">' +
+        '<div class="field">' +
+          '<label>JSON 内容</label>' +
+          '<textarea class="textarea mono" id="fBatch" data-autofocus style="min-height:170px" placeholder="[\n  { \"email\": \"a@example.com\", \"apiKey\": \"939a...\", \"providerId\": \"builtin:bigmodel-coding-plan\" }\n]"></textarea>' +
+          '<div class="hint">providerId 可省略，会按 Key 形态与 Base URL 自动判断。</div>' +
+        '</div>' +
+        '<div class="field" style="margin-bottom:4px">' +
+          '<input type="file" id="fBatchFile" accept=".json,application/json" style="display:none" />' +
+          '<button class="btn btn-sm" data-pick-file>选择文件…</button>' +
+          '<span class="hint" style="display:inline-block;margin-left:8px" id="fBatchFileLabel"></span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="modal-foot"><div class="right">' +
+        '<button class="btn" data-close>取消</button>' +
+        '<button class="btn btn-primary" data-run>开始导入</button>' +
+      '</div></div>' +
+    '</div>'
+  );
+
+  const ta = layer.querySelector('#fBatch');
+  layer.querySelectorAll('[data-close]').forEach((b) => { b.onclick = closeOverlay; });
+  layer.querySelector('[data-pick-file]').onclick = () => layer.querySelector('#fBatchFile').click();
+  layer.querySelector('#fBatchFile').onchange = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      ta.value = await file.text();
+      layer.querySelector('#fBatchFileLabel').textContent = file.name;
+    } catch (err) {
+      toast('读取文件失败', 'err', err.message);
+    }
+  };
+
+  layer.querySelector('[data-run]').onclick = async () => {
+    let parsed;
+    try {
+      parsed = JSON.parse(ta.value);
+    } catch (err) {
+      toast('JSON 解析失败', 'err', err.message);
+      return;
+    }
+    const entries = Array.isArray(parsed) ? parsed : parsed && Array.isArray(parsed.accounts) ? parsed.accounts : null;
+    if (!entries) {
+      toast('格式不对', 'err', '需要一个数组，或包含 accounts 数组的对象。');
+      return;
+    }
+    const btn = layer.querySelector('[data-run]');
+    btn.disabled = true;
+    btn.textContent = '导入中…';
+    try {
+      const report = await api.importBatch(entries);
+      closeOverlay();
+      showImportReport(report, '批量导入完成');
+      await refresh();
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = '开始导入';
+      toast('导入失败', 'err', err.message);
+    }
+  };
+}
+
+function showImportReport(report, title) {
+  const imported = report.imported || report.accounts || [];
+  const skipped = report.skipped || [];
+  const reasons = {};
+  skipped.forEach((s) => { reasons[s.reason] = (reasons[s.reason] || 0) + 1; });
+  const reasonText = { duplicate: '已存在', invalid: '无效条目', error: '写入失败' };
+  const detail = Object.entries(reasons).map(([k, v]) => (reasonText[k] || k) + ' ' + v).join(' · ');
+
+  openOverlay(
+    '<div class="modal" role="dialog" style="width:min(480px,100%)">' +
+      '<div class="modal-head"><div><h3>' + esc(title) + '</h3>' +
+        '<p>' + (report.total != null ? '共 ' + report.total + ' 条' : '') + '</p></div></div>' +
+      '<div class="modal-body"><div class="summary">' +
+        '<span class="badge valid">已导入 ' + imported.length + '</span>' +
+        (skipped.length ? '<span class="badge expiring">跳过 ' + skipped.length + '</span>' : '') +
+      '</div>' +
+      (detail ? '<p class="hint" style="margin-top:8px">' + esc(detail) + '</p>' : '') +
+      '</div>' +
+      '<div class="modal-foot"><div class="right"><button class="btn btn-primary" data-close data-autofocus>好</button></div></div>' +
+    '</div>'
+  ).querySelector('[data-close]').onclick = closeOverlay;
+}
+
+/* ================================================================== *
+ * Detail / logs / export overlays
+ * ================================================================== */
+
+function detailOverlay(id) {
+  const a = state.accounts.find((x) => x.id === id);
+  if (!a) return;
+  const layer = openOverlay(
+    '<div class="modal" role="dialog">' +
+      '<div class="modal-head"><div><h3>' + esc(a.label || a.email) + '</h3>' +
+        '<p>' + esc(a.providerName) + (a.region ? ' · ' + esc(a.region) : '') + '</p></div>' +
+        '<button class="icon-btn close" data-close title="关闭">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/></svg></button></div>' +
+      '<div class="modal-body">' +
+        '<div class="summary">' + providerBadge(a) + tokenBadge(a.token) +
+          a.tags.map((t) => '<span class="badge tag">' + esc(t) + '</span>').join('') + '</div>' +
+        '<dl class="kv" style="margin-top:14px">' +
+          '<dt>账号标识</dt><dd>' + esc(a.email || '—') + '</dd>' +
+          '<dt>用户 ID</dt><dd class="mono">' + esc(a.userId || '—') + '</dd>' +
+          '<dt>Key</dt><dd><code>' + esc(a.apiKeyMasked) + '</code></dd>' +
+          '<dt>Key 形态</dt><dd>' + esc(a.keyKind) + '</dd>' +
+          '<dt>指纹</dt><dd class="mono">' + esc(a.keyFingerprint) + '</dd>' +
+          '<dt>Base URL</dt><dd><code>' + esc(a.baseURL || '—') + '</code></dd>' +
+          '<dt>Provider</dt><dd class="mono">' + esc(a.providerId) + '</dd>' +
+          '<dt>过期时间</dt><dd>' + (a.token.expiresAt ? fmtDate(a.token.expiresAt) : '长期有效 / 未知') + '</dd>' +
+          '<dt>添加时间</dt><dd>' + fmtDate(a.createdAt) + '</dd>' +
+          '<dt>最近切换</dt><dd>' + fmtDate(a.lastUsedAt) + (a.useCount ? '（共 ' + a.useCount + ' 次）' : '') + '</dd>' +
+          (a.notes ? '<dt>备注</dt><dd>' + esc(a.notes) + '</dd>' : '') +
+        '</dl>' +
+        '<p class="hint" id="probeResult" style="margin-top:14px"></p>' +
+      '</div>' +
+      '<div class="modal-foot">' +
+        '<button class="btn btn-sm" data-probe>检查端点连通性</button>' +
+        '<div class="right">' +
+          '<button class="btn" data-close>关闭</button>' +
+          '<button class="btn btn-primary" data-activate>切换到此账号</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>'
+  );
+
+  layer.querySelectorAll('[data-close]').forEach((b) => { b.onclick = closeOverlay; });
+  layer.querySelector('[data-activate]').onclick = () => { closeOverlay(); doActivate(id); };
+  layer.querySelector('[data-probe]').onclick = async (e) => {
+    const btn = e.currentTarget;
+    const out = layer.querySelector('#probeResult');
+    btn.disabled = true;
+    btn.textContent = '检查中…';
+    const res = await api.probe(id).catch((err) => ({ ok: false, message: err.message }));
+    out.textContent = res.message;
+    out.className = 'hint ' + (res.ok ? 'ok' : 'warn');
+    btn.disabled = false;
+    btn.textContent = '检查端点连通性';
+  };
+}
+
+async function logsOverlay() {
+  const layer = openOverlay(
+    '<div class="modal wide" role="dialog">' +
+      '<div class="modal-head"><div><h3>运行日志</h3><p class="mono" id="logPath" style="font-size:11.5px"></p></div>' +
+        '<button class="icon-btn close" data-close title="关闭">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/></svg></button></div>' +
+      '<div class="modal-body"><div class="logs" id="logBody">加载中…</div></div>' +
+      '<div class="modal-foot"><div class="right"><button class="btn" data-close>关闭</button></div></div>' +
+    '</div>'
+  );
+  layer.querySelectorAll('[data-close]').forEach((b) => { b.onclick = closeOverlay; });
+  try {
+    const res = await api.logs();
+    layer.querySelector('#logPath').textContent = res.file;
+    layer.querySelector('#logBody').innerHTML = res.entries.length
+      ? res.entries.map((e) => {
+          const lv = e.level === 'error' ? 'lv-error' : e.level === 'warn' ? 'lv-warn' : '';
+          return '<div class="' + lv + '">' + esc((e.ts || '').slice(11, 19)) + '  ' + esc(e.event || '') +
+            '  <span class="faint">' + esc(JSON.stringify(Object.fromEntries(Object.entries(e).filter(([k]) => !['ts', 'level', 'event'].includes(k))))) + '</span></div>';
+        }).join('')
+      : '<span class="faint">暂无日志</span>';
+  } catch (err) {
+    layer.querySelector('#logBody').textContent = '读取失败：' + err.message;
+  }
+}
+
+function exportOverlay() {
+  const count = state.accounts.length;
+  openOverlay(
+    '<div class="modal" role="dialog" style="width:min(460px,100%)">' +
+      '<div class="modal-head"><div><h3>导出备份</h3>' +
+        '<p>导出全部 ' + count + ' 个账号的邮箱、标签与完整 Key，用于备份或迁移到另一台机器。</p></div></div>' +
+      '<div class="modal-body">' +
+        '<div class="banner danger" style="margin-bottom:10px">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 3h.01" stroke-linecap="round"/><path d="M10.3 4.3 2.6 17.7A2 2 0 0 0 4.3 20.7h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0Z" stroke-linejoin="round"/></svg>' +
+          '<div>导出的文件包含明文 API Key，等同于账号密码，不要分享或提交到代码仓库。</div></div>' +
+        '<p class="hint">文件会下载到浏览器默认下载目录。</p>' +
+      '</div>' +
+      '<div class="modal-foot"><div class="right">' +
+        '<button class="btn" data-close>取消</button>' +
+        '<button class="btn btn-primary" data-download' + (count ? '' : ' disabled') + '>下载 JSON</button>' +
+      '</div></div>' +
+    '</div>'
+  ).querySelector('[data-download]').onclick = () => {
+    window.location.href = '/api/export';
+    closeOverlay();
+    toast('已开始下载', 'ok');
+  };
+}
+
+/* ================================================================== *
+ * Event wiring
+ * ================================================================== */
+
+document.addEventListener('click', async (e) => {
+  const target = e.target.closest('[data-action]');
+  if (!target) return;
+  const action = target.dataset.action;
+  const id = target.dataset.id;
+
+  switch (action) {
+    case 'refresh':
+      await refresh(true);
+      break;
+    case 'add-account':
+      accountFormOverlay(null);
+      break;
+    case 'edit': {
+      const account = state.accounts.find((a) => a.id === id);
+      if (account) accountFormOverlay(account);
+      break;
+    }
+    case 'delete':
+      await doDelete(id);
+      break;
+    case 'activate':
+      await doActivate(id);
+      break;
+    case 'copy':
+      await doCopy(id);
+      break;
+    case 'reveal':
+      await doReveal(id);
+      break;
+    case 'details':
+      detailOverlay(id);
+      break;
+    case 'batch-import':
+      batchImportOverlay();
+      break;
+    case 'export':
+      exportOverlay();
+      break;
+    case 'show-logs':
+      logsOverlay();
+      break;
+    case 'open-dir':
+      try {
+        await api.openDir(target.dataset.which);
+      } catch (err) {
+        toast('打开失败', 'err', err.message);
+      }
+      break;
+    case 'import-local': {
+      target.disabled = true;
+      try {
+        const report = await api.importLocal();
+        showImportReport(report, '本机账号导入完成');
+        await refresh();
+      } catch (err) {
+        toast('导入失败', 'err', err.message);
+      } finally {
+        target.disabled = false;
+      }
+      break;
+    }
+    default:
+      break;
+  }
+});
+
+refresh(true);
+setInterval(() => { if (!state.overlay) refresh(); }, 30000);
+</script>
+</body>
+</html>

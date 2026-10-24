@@ -1,0 +1,138 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: npm install --no-audit --no-fund
+      - name: Unit tests
+        run: npm test
+
+  build:
+    name: build (${{ matrix.name }})
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: win-x64
+            artifact: zcode-account-manager-win-x64.exe
+          - os: macos-latest
+            name: macos-arm64
+            artifact: zcode-account-manager-macos-arm64
+          - os: ubuntu-latest
+            name: linux-x64
+            artifact: zcode-account-manager-linux-x64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: npm install --no-audit --no-fund
+      - name: Package executable
+        run: npm run build
+      - name: Smoke test (linux)
+        if: runner.os == 'Linux'
+        env:
+          ZCAM_NO_OPEN: '1'
+          ZCAM_PORT: '7791'
+          ZCODE_HOME: ${{ github.workspace }}/.ci-zcode
+        run: |
+          mkdir -p .ci-zcode/v2
+          echo '{"provider":{}}' > .ci-zcode/v2/config.json
+          ./dist/zcode-account-manager-linux-x64 &
+          PID=$!
+          for i in $(seq 1 20); do
+            sleep 0.5
+            if curl -fsS http://127.0.0.1:7791/api/status > /tmp/status.json; then break; fi
+          done
+          cat /tmp/status.json
+          curl -fsS http://127.0.0.1:7791/ | grep -q 'ZCode 账号管理器'
+          kill $PID
+      - name: Smoke test (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          ZCAM_NO_OPEN: '1'
+          ZCAM_PORT: '7791'
+          ZCODE_HOME: ${{ github.workspace }}\.ci-zcode
+        run: |
+          New-Item -ItemType Directory -Force -Path .ci-zcode\v2 | Out-Null
+          Set-Content -Path .ci-zcode\v2\config.json -Value '{"provider":{}}'
+          $p = Start-Process -FilePath .\dist\zcode-account-manager-win-x64.exe -PassThru
+          $ok = $false
+          foreach ($i in 1..20) {
+            Start-Sleep -Milliseconds 500
+            try {
+              $r = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:7791/api/status
+              if ($r.StatusCode -eq 200) { $ok = $true; break }
+            } catch {}
+          }
+          if (-not $ok) { Stop-Process -Id $p.Id -Force; throw 'server did not start' }
+          $html = (Invoke-WebRequest -UseBasicParsing http://127.0.0.1:7791/).Content
+          if ($html -notmatch 'ZCode') { Stop-Process -Id $p.Id -Force; throw 'ui asset missing' }
+          Stop-Process -Id $p.Id -Force
+      - name: Smoke test (macos)
+        if: runner.os == 'macOS'
+        env:
+          ZCAM_NO_OPEN: '1'
+          ZCAM_PORT: '7791'
+          ZCODE_HOME: ${{ github.workspace }}/.ci-zcode
+        run: |
+          mkdir -p .ci-zcode/v2
+          echo '{"provider":{}}' > .ci-zcode/v2/config.json
+          ./dist/zcode-account-manager-macos-arm64 &
+          PID=$!
+          for i in $(seq 1 20); do
+            sleep 0.5
+            if curl -fsS http://127.0.0.1:7791/api/status > /tmp/status.json; then break; fi
+          done
+          curl -fsS http://127.0.0.1:7791/ | grep -q 'ZCode'
+          kill $PID
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.name }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: List release files
+        run: ls -lR release
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true
