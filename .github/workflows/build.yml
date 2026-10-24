@@ -59,7 +59,9 @@ jobs:
         run: |
           mkdir -p .ci-zcode/v2
           echo '{"provider":{}}' > .ci-zcode/v2/config.json
-          ./dist/zcode-account-manager-linux-x64 &
+          BIN=$(ls dist/zcode-account-manager-linux-* | head -1)
+          chmod +x "$BIN"
+          "$BIN" &
           PID=$!
           for i in $(seq 1 20); do
             sleep 0.5
@@ -78,7 +80,8 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path .ci-zcode\v2 | Out-Null
           Set-Content -Path .ci-zcode\v2\config.json -Value '{"provider":{}}'
-          $p = Start-Process -FilePath .\dist\zcode-account-manager-win-x64.exe -PassThru
+          $exe = (Get-ChildItem dist\zcode-account-manager-win-*.exe | Select-Object -First 1).FullName
+          $p = Start-Process -FilePath $exe -PassThru
           $ok = $false
           foreach ($i in 1..20) {
             Start-Sleep -Milliseconds 500
@@ -100,7 +103,9 @@ jobs:
         run: |
           mkdir -p .ci-zcode/v2
           echo '{"provider":{}}' > .ci-zcode/v2/config.json
-          ./dist/zcode-account-manager-macos-arm64 &
+          BIN=$(ls dist/zcode-account-manager-macos-* | head -1)
+          chmod +x "$BIN"
+          "$BIN" &
           PID=$!
           for i in $(seq 1 20); do
             sleep 0.5
