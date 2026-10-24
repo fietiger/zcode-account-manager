@@ -1,5 +1,7 @@
 # ZCode 账号管理器
 
+[![build](https://github.com/fietiger/zcode-account-manager/actions/workflows/build.yml/badge.svg)](https://github.com/fietiger/zcode-account-manager/actions/workflows/build.yml)
+
 本地 ZCode 多账号管理器。纯本地运行：无代理、无中继、不上传任何数据。
 
 管理多个 ZCode 账号（Z.ai / BigModel 的 Coding Plan、Start Plan、API Key），一键把选定账号切换给客户端使用。参考 [agy-credential-manager](https://github.com/fietiger/agy-credential-manager) 的思路实现：账号集中保管 + 切换时写入客户端真实配置 + 写入后回读校验。
@@ -87,6 +89,8 @@ npm run build -- --all   # 产出全部目标（win-x64 / macos-x64 / macos-arm6
 ```
 
 打包使用 [@yao-pkg/pkg](https://github.com/yao-pkg/pkg)，把 Node 运行时、后端与 `ui/` 静态资源一起塞进单个可执行文件。
+
+> 目标版本固定为 `node22`：pkg-fetch 只发布 node22 / node24 / node26 的预编译 base 二进制，指定 node20 会让 pkg 静默回退到从源码编译 Node，CI 上必然超时失败。可用 `PKG_NODE_TARGET` 覆盖。
 
 GitHub Actions（`.github/workflows/build.yml`）会在 push 时跑单元测试并构建三平台产物；打 `v*` tag 时自动发布 Release。每个平台构建完都会启动产物做一次冒烟测试（检查 `/api/status` 与首页能否正常返回），确保打包进去的 UI 资源没有丢。
 
